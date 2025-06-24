@@ -11,10 +11,13 @@ using Microsoft.Extensions.Hosting;
 using MoneyTracker.Database;
 using MoneyTracker.Models;
 using MoneyTracker.Services.Email;
+using MoneyTracker.Services.JwtToken;
 
 var builder = WebApplication.CreateBuilder(args);
 
+//====================================================================
 // Add services to the container.
+//====================================================================
 
 builder.Services.AddDbContext<MoneyTrackerDbContext>((options) =>
 {
@@ -41,15 +44,20 @@ builder.Services.AddIdentity<User, Role>((options) =>
     
 }).AddEntityFrameworkStores<MoneyTrackerDbContext>().AddDefaultTokenProviders();
 
-
+// FluentValidation setup
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
 
+// AutoMapper setup
 builder.Services.AddAutoMapper(Assembly.GetExecutingAssembly());
 
 // Register the EmailService and SMTPConfiguration
 builder.Services.Configure<SMTPConfiguration>(builder.Configuration.GetSection("SMTPConfiguration"));
 builder.Services.AddTransient<IEmailService, EmailService>();
+
+// Register the JWT token service
+builder.Services.Configure<JwtConfiguration>(builder.Configuration.GetSection("JwtConfiguration"));
+builder.Services.AddTransient<IJwtTokenService, JwtTokenService>();
 
 builder.Services.AddRouting((options) => options.LowercaseUrls = true);
 builder.Services.AddControllers();
@@ -59,7 +67,10 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
+//====================================================================
 // Configure the HTTP request pipeline.
+//====================================================================
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
