@@ -18,7 +18,7 @@ namespace MoneyTracker.Services.JwtToken
 
         public string GenerateRefreshToken()
         {
-            throw new NotImplementedException();
+            return Guid.NewGuid().ToString();
         }
 
         public string GenerateToken(User user)

@@ -11,6 +11,10 @@ namespace MoneyTracker.Database.Configurations
         {
             builder.Property((user) => user.Firstname).HasMaxLength(50).IsRequired();
             builder.Property((user) => user.Lastname).HasMaxLength(50).IsRequired();
+            builder.Property((user) => user.RefreshToken).IsRequired();
+            builder.Property((user) => user.RefreshTokenExpiry);
+            builder.Property((user) => user.CreatedAt).HasDefaultValueSql("GETDATE()");
+            builder.Property((user) => user.LastModifiedAt).HasDefaultValueSql("GETDATE()");
             builder.Property((user) => user.IsDeleted).HasDefaultValue(false);
         }
     }

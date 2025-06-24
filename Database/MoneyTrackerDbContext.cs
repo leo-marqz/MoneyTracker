@@ -24,7 +24,7 @@ namespace MoneyTracker.Database
         {
             base.ConfigureConventions(configuration);
             configuration.Properties<decimal>().HavePrecision(18, 2);
-            configuration.Properties<DateTime>().HaveColumnType("date");
+            // configuration.Properties<DateTime>().HaveColumnType("date");
         }
 
         protected override void OnModelCreating(ModelBuilder builder)
