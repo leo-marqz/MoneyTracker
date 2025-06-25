@@ -57,6 +57,13 @@ namespace MoneyTracker.Services.Email
             return _smtpClient.SendMailAsync(mailMessage);
         }
 
+        public Task SendEmailByConfirmationEmailAsync(string to, string confirmationLink)
+        {
+            var subject = "Confirm your email";
+            var body = $"Please confirm your email by clicking here: {confirmationLink}";
+            return SendEmailAsync(to, subject, body);
+        }
+
         private void SendEmailAsyncValidator(string to, string subject, string body)
         {
             if (string.IsNullOrWhiteSpace(to))

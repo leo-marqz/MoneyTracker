@@ -13,6 +13,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using MoneyTracker.Database;
+using MoneyTracker.Database.Seeders;
 using MoneyTracker.Models;
 using MoneyTracker.Services.Email;
 using MoneyTracker.Services.JwtToken;
@@ -95,6 +96,8 @@ builder.Services.AddRouting((options) => options.LowercaseUrls = true);
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
+// Configure Swagger
+// This will generate the Swagger documentation for the API
 builder.Services.AddSwaggerGen((options)=>
 {
     options.SwaggerDoc("v1", new OpenApiInfo
@@ -145,5 +148,12 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Seed the database with initial data
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    await IdentitySeeder.SeedRolesAndAdminAsync(services);
+}
 
 app.Run();

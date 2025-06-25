@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using MoneyTracker.DTOs;
 using MoneyTracker.Models;
+using MoneyTracker.Services.Email;
 using MoneyTracker.Services.JwtToken;
 
 namespace MoneyTracker.Controllers
@@ -20,16 +21,18 @@ namespace MoneyTracker.Controllers
         private readonly SignInManager<User> _signInManager;
         private readonly UserManager<User> _userManager;
         private readonly IJwtTokenService _jwtTokenService;
+        private readonly IEmailService _emailService;
 
         public AuthController(IMapper mapper, ILogger<AuthController> logger,
             UserManager<User> userManager, SignInManager<User> signInManager,
-            IJwtTokenService jwtTokenService)
+            IJwtTokenService jwtTokenService, IEmailService emailService)
         {
             _logger = logger;
             _signInManager = signInManager;
             _userManager = userManager;
             _mapper = mapper;
             _jwtTokenService = jwtTokenService;
+            _emailService = emailService;
         }
 
         [HttpPost("register")]
@@ -50,13 +53,40 @@ namespace MoneyTracker.Controllers
                 user.RefreshTokenExpiry = refreshTokenExpiry;
                 user.RefreshToken = refreshToken;
 
+                var resultCreateUser = await _userManager.CreateAsync(user, request.Password);
+                var resultAddRole = await _userManager.AddToRoleAsync(user, SystemRole.USER);
+
+                if(!resultCreateUser.Succeeded || !resultAddRole.Succeeded)
+                {
+                    _logger.LogError("User registration failed: {Errors}", resultCreateUser.Errors);
+                    return StatusCode(500, "User registration failed.");
+                }
+
+                _logger.LogInformation("User registered successfully: {UserId}", user.Id);
+
+                var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+
+                // url to confirm email
+                var callbackUrl = Url.Action(
+                    action: "ConfirmEmail", 
+                    controller: "Auth",
+                    values: new {
+                        userId = user.Id,
+                        code = code
+                    },
+                    protocol: HttpContext.Request.Scheme
+                );
+                
+                _logger.LogInformation("Email confirmation URL: {CallbackUrl}", callbackUrl);
+                
+                await _emailService.SendEmailByConfirmationEmailAsync(user.Email, callbackUrl);
+
                 return Ok(new
                 {
                     Message = "User registered successfully.",
                     Token = _jwtTokenService.GenerateToken(user),
                     RefreshToken = refreshToken,
                     RefreshTokenExpiry = refreshTokenExpiry,
-                    User = user
                 });
 
             }
