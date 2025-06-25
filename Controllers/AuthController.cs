@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -31,15 +32,8 @@ namespace MoneyTracker.Controllers
             _jwtTokenService = jwtTokenService;
         }
 
-        /*
-         * POST: api/auth/register -> register a new user
-         * POST: api/auth/login -> login a user
-         * POST: api/auth/confirm -> confirm user email
-         * POST: api/auth/mfa -> enable multi-factor authentication
-         * POST: api/auth/mfa/verify -> verify multi-factor authentication code
-         */
-
         [HttpPost("register")]
+        [AllowAnonymous]
         public async Task<ActionResult> Register([FromBody] UserRegistrationRequest request)
         {
             if (request == null)
@@ -61,7 +55,8 @@ namespace MoneyTracker.Controllers
                     Message = "User registered successfully.",
                     Token = _jwtTokenService.GenerateToken(user),
                     RefreshToken = refreshToken,
-                    RefreshTokenExpiry = refreshTokenExpiry
+                    RefreshTokenExpiry = refreshTokenExpiry,
+                    User = user
                 });
 
             }
@@ -73,6 +68,7 @@ namespace MoneyTracker.Controllers
         }
 
         [HttpPost("login")]
+        [AllowAnonymous]
         public async Task<ActionResult> Login([FromBody] UserLoginRequest request)
         {
             return Ok(new { Message = "User logged in successfully." });
