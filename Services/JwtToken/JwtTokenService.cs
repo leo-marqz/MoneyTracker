@@ -1,29 +1,61 @@
 
 using System;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
+using MoneyTracker.Database;
 using MoneyTracker.Models;
 
 namespace MoneyTracker.Services.JwtToken
 {
     public class JwtTokenService : IJwtTokenService
     {
-        private readonly JwtConfiguration _jwtConfiguration;
+        private ILogger<JwtTokenService> _logger;
+        private MoneyTrackerDbContext _context;
+        private JwtConfiguration _jwtConfiguration;
 
-        public JwtTokenService(IOptions<JwtConfiguration> jwtConfiguration)
+        public JwtTokenService(
+            IOptions<JwtConfiguration> jwtConfiguration,
+            ILogger<JwtTokenService> logger,
+            MoneyTrackerDbContext context
+            )
         {
             JwtTokenServiceValidator(jwtConfiguration);
 
             _jwtConfiguration = jwtConfiguration.Value;
+            _logger = logger;
+            _context = context;
         }
 
-        public string GenerateRefreshToken()
+        public Guid GenerateRefreshToken()
         {
-            return Guid.NewGuid().ToString();
+            return Guid.NewGuid();
         }
 
         public string GenerateToken(User user)
         {
-            throw new NotImplementedException();
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtConfiguration.SecretKey));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            var claims = new Claim[]{
+                new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+                new Claim(JwtRegisteredClaimNames.Email, user.Email),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                new Claim("role", ""), // Assuming Role is an enum or string
+            };
+
+            var token = new JwtSecurityToken(
+                issuer: _jwtConfiguration.Issuer,
+                audience: _jwtConfiguration.Audience,
+                claims: claims,
+                expires: DateTime.Now.Add(_jwtConfiguration.ExpirationTime),
+                signingCredentials: creds
+            );
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
         public string RefreshToken(User user, string refreshToken)

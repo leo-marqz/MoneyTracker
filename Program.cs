@@ -1,13 +1,16 @@
 using System;
 using System.Reflection;
+using System.Text;
 using FluentValidation;
 using FluentValidation.AspNetCore;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.IdentityModel.Tokens;
 using MoneyTracker.Database;
 using MoneyTracker.Models;
 using MoneyTracker.Services.Email;
@@ -59,9 +62,35 @@ builder.Services.AddTransient<IEmailService, EmailService>();
 builder.Services.Configure<JwtConfiguration>(builder.Configuration.GetSection("JwtConfiguration"));
 builder.Services.AddTransient<IJwtTokenService, JwtTokenService>();
 
+var jwtConfig = builder.Configuration.GetSection("JwtConfiguration").Get<JwtConfiguration>();
+var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtConfig.SecretKey));
+
+builder.Services.AddAuthentication((options) =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+}).AddJwtBearer((options) =>
+{
+    options.RequireHttpsMetadata = false; // Set to true in production
+    options.SaveToken = true; // Save the token in the authentication properties
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        // Issued by the server
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = key,
+        
+        ValidateIssuer = true, 
+        ValidIssuer = jwtConfig.Issuer,
+
+        ValidateAudience = true,
+        ValidAudience = jwtConfig.Audience,
+
+        ValidateLifetime = true
+    };
+});
+
 builder.Services.AddRouting((options) => options.LowercaseUrls = true);
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 

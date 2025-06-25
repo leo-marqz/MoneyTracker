@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using MoneyTracker.DTOs;
 using MoneyTracker.Models;
+using MoneyTracker.Services.JwtToken;
 
 namespace MoneyTracker.Controllers
 {
@@ -17,14 +18,17 @@ namespace MoneyTracker.Controllers
         private readonly IMapper _mapper;
         private readonly SignInManager<User> _signInManager;
         private readonly UserManager<User> _userManager;
+        private readonly IJwtTokenService _jwtTokenService;
 
-        public AuthController( IMapper mapper, ILogger<AuthController> logger,
-            UserManager<User> userManager, SignInManager<User> signInManager )
+        public AuthController(IMapper mapper, ILogger<AuthController> logger,
+            UserManager<User> userManager, SignInManager<User> signInManager,
+            IJwtTokenService jwtTokenService)
         {
             _logger = logger;
             _signInManager = signInManager;
             _userManager = userManager;
             _mapper = mapper;
+            _jwtTokenService = jwtTokenService;
         }
 
         /*
@@ -46,13 +50,20 @@ namespace MoneyTracker.Controllers
             try
             {
                 var user = _mapper.Map<User>(request);
-                var result = await _userManager.CreateAsync(user, request.Password);
+                var refreshToken = _jwtTokenService.GenerateRefreshToken();
+                var refreshTokenExpiry = DateTime.UtcNow.AddDays(7);
 
-                if (result.Succeeded)
+                user.RefreshTokenExpiry = refreshTokenExpiry;
+                user.RefreshToken = refreshToken;
+
+                return Ok(new
                 {
-                    return Ok(new { Message = "User registered successfully.", User = user });
-                }
-                return BadRequest(new { Message = "User registration failed.", Errors = result.Errors });
+                    Message = "User registered successfully.",
+                    Token = _jwtTokenService.GenerateToken(user),
+                    RefreshToken = refreshToken,
+                    RefreshTokenExpiry = refreshTokenExpiry
+                });
+
             }
             catch (Exception e)
             {
