@@ -78,8 +78,8 @@ builder.Services.AddAuthentication((options) =>
         // Issued by the server
         ValidateIssuerSigningKey = true,
         IssuerSigningKey = key,
-        
-        ValidateIssuer = true, 
+
+        ValidateIssuer = true,
         ValidIssuer = jwtConfig.Issuer,
 
         ValidateAudience = true,
@@ -89,10 +89,20 @@ builder.Services.AddAuthentication((options) =>
     };
 });
 
+
 builder.Services.AddRouting((options) => options.LowercaseUrls = true);
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+
+builder.Services.AddSwaggerGen((options)=>
+{
+    options.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+    {
+        Title = "MoneyTracker API",
+        Version = "v1",
+        Description = "API for MoneyTracker application"
+    });
+});
 
 var app = builder.Build();
 

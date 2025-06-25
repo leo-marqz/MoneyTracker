@@ -1,6 +1,7 @@
 
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using MoneyTracker.DTOs;
@@ -9,7 +10,7 @@ using MoneyTracker.Models;
 namespace MoneyTracker.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/v1/[controller]")]
     public class TransactionsController : ControllerBase
     {
         private readonly ILogger<TransactionsController> _logger;
@@ -18,15 +19,8 @@ namespace MoneyTracker.Controllers
             _logger = logger;
         }
 
-        /*
-         * GET: api/transactions -> all transactions
-         * GET: api/transactions/{id} -> transaction by id
-         * POST: api/transactions -> create a new transaction
-         * PUT: api/transactions/{id} -> update an existing transaction
-         * DELETE: api/transactions/{id} -> delete a transaction
-         */
-
         [HttpGet]
+        [Authorize]
         public async Task<ActionResult<IReadOnlyList<TransactionResponse>>> GetAllTransactions()
         {
             // Logic to retrieve all transactions
