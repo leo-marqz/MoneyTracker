@@ -1,5 +1,6 @@
 
 using System;
+using System.IO;
 using System.Net;
 using System.Net.Mail;
 using System.Threading.Tasks;
@@ -59,8 +60,13 @@ namespace MoneyTracker.Services.Email
 
         public Task SendEmailByConfirmationEmailAsync(string to, string confirmationLink)
         {
+            var path = Path.Combine(
+                                AppDomain.CurrentDomain.BaseDirectory,
+                                "Services", "Email", "Templates", "ConfirmEmailTemplate.html");
             var subject = "Confirm your email";
-            var body = $"Please confirm your email by clicking here: {confirmationLink}";
+            var body = File.ReadAllText(path)
+                .Replace("{{confirmLink}}", confirmationLink);
+                
             return SendEmailAsync(to, subject, body);
         }
 

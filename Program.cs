@@ -27,7 +27,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<MoneyTrackerDbContext>((options) =>
 {
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
-    options.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
+    // options.UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
     #if DEBUG
         options.EnableSensitiveDataLogging();
     #endif

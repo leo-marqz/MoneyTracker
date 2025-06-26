@@ -1,10 +1,13 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using MoneyTracker.Database;
 using MoneyTracker.DTOs;
 using MoneyTracker.Models;
 using MoneyTracker.Services.Email;
@@ -22,10 +25,12 @@ namespace MoneyTracker.Controllers
         private readonly UserManager<User> _userManager;
         private readonly IJwtTokenService _jwtTokenService;
         private readonly IEmailService _emailService;
+        private readonly MoneyTrackerDbContext _context;
 
         public AuthController(IMapper mapper, ILogger<AuthController> logger,
             UserManager<User> userManager, SignInManager<User> signInManager,
-            IJwtTokenService jwtTokenService, IEmailService emailService)
+            IJwtTokenService jwtTokenService, IEmailService emailService,
+            MoneyTrackerDbContext context)
         {
             _logger = logger;
             _signInManager = signInManager;
@@ -33,6 +38,7 @@ namespace MoneyTracker.Controllers
             _mapper = mapper;
             _jwtTokenService = jwtTokenService;
             _emailService = emailService;
+            _context = context;
         }
 
         [HttpPost("register")]
@@ -56,7 +62,7 @@ namespace MoneyTracker.Controllers
                 var resultCreateUser = await _userManager.CreateAsync(user, request.Password);
                 var resultAddRole = await _userManager.AddToRoleAsync(user, SystemRole.USER);
 
-                if(!resultCreateUser.Succeeded || !resultAddRole.Succeeded)
+                if (!resultCreateUser.Succeeded || !resultAddRole.Succeeded)
                 {
                     _logger.LogError("User registration failed: {Errors}", resultCreateUser.Errors);
                     return StatusCode(500, "User registration failed.");
@@ -68,15 +74,16 @@ namespace MoneyTracker.Controllers
 
                 // url to confirm email
                 var callbackUrl = Url.Action(
-                    action: "ConfirmEmail", 
+                    action: "ConfirmEmail",
                     controller: "Auth",
-                    values: new {
+                    values: new
+                    {
                         userId = user.Id,
                         code = code
                     },
                     protocol: HttpContext.Request.Scheme
                 );
-                
+
                 _logger.LogInformation("Email confirmation URL: {CallbackUrl}", callbackUrl);
 
                 await _emailService.SendEmailByConfirmationEmailAsync(user.Email, callbackUrl);
@@ -101,21 +108,93 @@ namespace MoneyTracker.Controllers
         [AllowAnonymous]
         public async Task<ActionResult> Login([FromBody] UserLoginRequest request)
         {
-            return Ok(new { Message = "User logged in successfully." });
+            if (request == null)
+            {
+                return BadRequest("Invalid login request.");
+            }
+
+            var response = await _signInManager.PasswordSignInAsync(
+                request.Email,
+                request.Password,
+                isPersistent: false,
+                lockoutOnFailure: false
+            );
+
+            if (response.IsLockedOut)
+            {
+                _logger.LogWarning("User account is locked out: {Email}", request.Email);
+                return StatusCode(423, "User account is locked out.");
+            }
+
+            if (!response.Succeeded)
+            {
+                _logger.LogWarning("Login failed for user: {Email}", request.Email);
+                return Unauthorized("Invalid email or password.");
+            }
+
+            var user = await _userManager.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
+            var role = await _userManager.GetRolesAsync(user);
+
+            user.RefreshToken = _jwtTokenService.GenerateRefreshToken();
+            user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(7);
+
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("User logged in successfully: {Email}", request.Email);
+
+            return Ok(new
+            {
+                Message = "User logged in successfully.",
+                Token = _jwtTokenService.GenerateToken(user, role.FirstOrDefault()),
+                RefreshToken = user.RefreshToken.ToString(),
+                RefreshTokenExpiry = user.RefreshTokenExpiry.ToString()
+            });
         }
 
-        private string GenerateJwtToken(User user)
+        [HttpGet("confirm-email")]
+        [AllowAnonymous]
+        public async Task<ActionResult> ConfirmEmail(string userId, string code)
         {
-            // This method should generate a JWT token for the user
-            // For now, we will return a placeholder string
-            return "GeneratedJWTToken";
+            if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(code))
+            {
+                return BadRequest("Invalid email confirmation request.");
+            }
+
+            try
+            {
+                var user = await _userManager.FindByIdAsync(userId);
+
+                if (user == null)
+                {
+                    return NotFound("User not found.");
+                }
+
+                var result = await _userManager.ConfirmEmailAsync(user, code);
+
+                if (!result.Succeeded)
+                {
+                    _logger.LogError("Email confirmation failed: {Errors}", result.Errors);
+                    return StatusCode(500, "Email confirmation failed.");
+                }
+
+                _logger.LogInformation("Email confirmed successfully for user: {UserId}", user.Id);
+
+                // Aqui podria ir la logica de redireccionamiento a una pagina de confirmacion
+                return Ok(new { Message = "Email confirmed successfully." });
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "An error occurred while confirming the email.");
+                return StatusCode(500, "Internal server error");
+            }
         }
 
-        private string RefreshJwtToken(string token)
+        [HttpPost("logout")]
+        [Authorize]
+        public async Task<ActionResult> Logout()
         {
-            // This method should refresh the JWT token
-            // For now, we will return a placeholder string
-            return "RefreshedJWTToken";
+            await _signInManager.SignOutAsync();
+            return Ok(new { Message = "User logged out successfully." });
         }
 
     }
