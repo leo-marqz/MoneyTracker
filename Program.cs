@@ -65,13 +65,14 @@ builder.Services.Configure<JwtConfiguration>(builder.Configuration.GetSection("J
 builder.Services.AddTransient<IJwtTokenService, JwtTokenService>();
 
 var jwtConfig = builder.Configuration.GetSection("JwtConfiguration").Get<JwtConfiguration>();
-var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtConfig.SecretKey));
+var key = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(jwtConfig.SecretKey));
 
 builder.Services.AddAuthentication((options) =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-}).AddJwtBearer((options) =>
+})
+.AddJwtBearer((options) =>
 {
     options.RequireHttpsMetadata = false; // Set to true in production
     options.SaveToken = true; // Save the token in the authentication properties

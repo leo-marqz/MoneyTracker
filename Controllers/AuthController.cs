@@ -78,13 +78,13 @@ namespace MoneyTracker.Controllers
                 );
                 
                 _logger.LogInformation("Email confirmation URL: {CallbackUrl}", callbackUrl);
-                
+
                 await _emailService.SendEmailByConfirmationEmailAsync(user.Email, callbackUrl);
 
                 return Ok(new
                 {
                     Message = "User registered successfully.",
-                    Token = _jwtTokenService.GenerateToken(user),
+                    Token = _jwtTokenService.GenerateToken(user, SystemRole.USER),
                     RefreshToken = refreshToken,
                     RefreshTokenExpiry = refreshTokenExpiry,
                 });

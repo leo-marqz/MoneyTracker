@@ -35,23 +35,22 @@ namespace MoneyTracker.Services.JwtToken
             return Guid.NewGuid();
         }
 
-        public string GenerateToken(User user)
+        public string GenerateToken(User user, string role)
         {
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtConfiguration.SecretKey));
+            var key = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(_jwtConfiguration.SecretKey));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             var claims = new Claim[]{
                 new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
                 new Claim(JwtRegisteredClaimNames.Email, user.Email),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                new Claim("role", ""), // Assuming Role is an enum or string
+                new Claim("Role", role), 
             };
 
             var token = new JwtSecurityToken(
                 issuer: _jwtConfiguration.Issuer,
                 audience: _jwtConfiguration.Audience,
                 claims: claims,
-                expires: DateTime.Now.Add(_jwtConfiguration.ExpirationTime),
+                expires: DateTime.UtcNow.Add(_jwtConfiguration.ExpirationTime),
                 signingCredentials: creds
             );
 
@@ -95,6 +94,11 @@ namespace MoneyTracker.Services.JwtToken
             if (string.IsNullOrEmpty(jwtConfiguration.Value.SecretKey))
             {
                 throw new ArgumentException("JwtConfiguration.SecretKey cannot be null or empty");
+            }
+
+            if (jwtConfiguration.Value.SecretKey.Length < 32)
+{
+                throw new ArgumentException("JwtConfiguration.SecretKey must be at least 32 characters long");
             }
 
             if (jwtConfiguration.Value.ExpirationTime <= TimeSpan.Zero)
