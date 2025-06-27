@@ -30,9 +30,9 @@ namespace MoneyTracker.Services.JwtToken
             _context = context;
         }
 
-        public Guid GenerateRefreshToken()
+        public string GenerateRefreshToken()
         {
-            return Guid.NewGuid();
+            return Guid.NewGuid().ToString();
         }
 
         public string GenerateToken(User user, string role)

@@ -3,7 +3,7 @@ namespace MoneyTracker.Models
 {
     public enum TransactionMethod
     {
-       Cash = 1,
+        Cash = 1,
         BankTransfer = 2,
         CreditCard = 3,
         DebitCard = 4,

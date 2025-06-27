@@ -8,7 +8,7 @@ namespace MoneyTracker.Models
     {
         public string Firstname { get; set; }
         public string Lastname { get; set; }
-        public Guid RefreshToken { get; set; }
+        public string RefreshToken { get; set; }
         public DateTime RefreshTokenExpiry { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime LastModifiedAt { get; set; }

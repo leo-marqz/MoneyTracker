@@ -1,5 +1,7 @@
 using System;
+using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
@@ -193,8 +195,28 @@ namespace MoneyTracker.Controllers
         [Authorize]
         public async Task<ActionResult> Logout()
         {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var user = await _userManager.FindByIdAsync(userId);
+
+            if (user == null)
+            {
+                _logger.LogWarning("User not found for logout: {UserId}", userId);
+                return NotFound("User not found.");
+            }
+
             await _signInManager.SignOutAsync();
-            return Ok(new { Message = "User logged out successfully." });
+
+            user.RefreshToken = null;
+
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("User logged out successfully: {UserId}", userId);
+            
+            return Ok(new
+            {
+                Message = "User logged out successfully.",
+                UserId = userId
+            });
         }
 
     }

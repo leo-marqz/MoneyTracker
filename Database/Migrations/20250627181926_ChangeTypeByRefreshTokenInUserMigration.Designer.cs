@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using MoneyTracker.Database;
 
@@ -11,9 +12,11 @@ using MoneyTracker.Database;
 namespace MoneyTracker.Database.Migrations
 {
     [DbContext(typeof(MoneyTrackerDbContext))]
-    partial class MoneyTrackerDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250627181926_ChangeTypeByRefreshTokenInUserMigration")]
+    partial class ChangeTypeByRefreshTokenInUserMigration
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
