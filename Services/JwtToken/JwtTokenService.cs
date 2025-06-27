@@ -43,7 +43,7 @@ namespace MoneyTracker.Services.JwtToken
             var claims = new Claim[]{
                 new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
                 new Claim(JwtRegisteredClaimNames.Email, user.Email),
-                new Claim("Role", role), 
+                new Claim(ClaimTypes.Role, role) 
             };
 
             var token = new JwtSecurityToken(
